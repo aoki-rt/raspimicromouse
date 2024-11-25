@@ -27,6 +27,7 @@ using namespace std::chrono_literals;
 
 
 float g_length=0.0,g_lengthed=0.0;
+float g_theta
 char g_mode;
 float g_accel=0.0;
 float g_speed=0.0;
@@ -48,6 +49,7 @@ class SpdctlNode : public rclcpp::Node{
   private:
     void timer_callback(){
       float omega;
+      float tmp_speed_r,tmp_speed_l;
       short tmp_r,tmp_l;
       if(g_length == g_lengthed){
         twist_msg.linear.x=0.0;
@@ -62,7 +64,7 @@ class SpdctlNode : public rclcpp::Node{
         }
 
         switch(g_mode){
-          case 0:
+          case 0://front staright
             if(g_run_state==0){
               if( (g_length - g_lengthed) > ((g_speed*g_speed)-(MIN_SPEED*MIN_SPEED))/(2*g_accel) ){
               }else{
@@ -86,23 +88,42 @@ class SpdctlNode : public rclcpp::Node{
             }else{
               tmp_l =0;
             }
-            omega=KP*(tmp_r+tmp_l); 
+            omega=KP*(tmp_r+tmp_l);
+
+            tmp_speed_r = g_speed + omega;
+            tmp_speed_l = g_speed - omega;
+
+            if(tmp_speed_r< MIN_SPEED){
+              tmp_speed_r = MIN_SPEED;
+            }
+            if(tmp_speed_l < MIN_SPEED){
+              tmp_speed_l = MIN_SPEED;
+            }
+            twist_msg.linear.x=(tmp_speed_r+tmp_speed_l)/2;
+            twist_msg.angular.z=(tmp_speed_r-tmp_speed_l)/TREAD; 
             break;
+          case 1:     //right turn
+            if(g_run_state==0){
+              if( (g_length - g_lengthed) > ((g_speed*g_speed)-(MIN_SPEED*MIN_SPEED))/(2*g_accel) ){
+              }else{
+                g_run_state++;
+                g_accel=-1*ACCEL;
+              }
+            }else{
+              if(g_length < g_lengthed){
+                g_length=g_lengthed=0.0;
+                g_accel=0.0;
+                g_speed=0.0;
+              }
+            }
+            twist_msg.linear.x=0.0;
+            twist_msg.angular.z=-1*g_speed/TREAD/2.0;
+            break;
+
           default:
             g_speed=0.0;
             omega=0.0;
         }
-        float tmp_speed_r = g_speed + omega;
-        float tmp_speed_l = g_speed - omega;
-
-        if(tmp_speed_r< MIN_SPEED){
-           tmp_speed_r = MIN_SPEED;
-        }
-        if(tmp_speed_l < MIN_SPEED){
-           tmp_speed_l = MIN_SPEED;
-        }
-        twist_msg.linear.x=(tmp_speed_r+tmp_speed_l)/2;
-        twist_msg.angular.z=(tmp_speed_r-tmp_speed_l)/TREAD;
       }
       publisher_->publish(twist_msg);
     }
@@ -121,9 +142,15 @@ class SpdctlNode : public rclcpp::Node{
 //    RCLCPP_INFO(this->get_logger(),"subscribe_odom: %f %f",odom_msg->pose.pose.position.x,odom_msg->pose.pose.position.y);
       old_x = new_x;
       old_y = new_y;
+      old_omega = new_omega;
       new_x = odom_msg->pose.pose.position.x;
       new_y = odom_msg->pose.pose.position.y;
-      g_lengthed = g_lengthed + sqrt( (new_x-old_x)*(new_x-old_x)+(new_y-old_y)*(new_y-old_y) );
+      new_omega = odom_msg->pose.pose.orientation.z;
+      if(g_mode==0){
+        g_lengthed = g_lengthed + sqrt( (new_x-old_x)*(new_x-old_x)+(new_y-old_y)*(new_y-old_y) );
+      }else{
+        g_theta = atan2(2*orientation.w*orientation.z,1-2*orientation.z*orientation.z);
+      }
     }
     void sensor_callback(const raspimouse_msgs::msg::LightSensors::SharedPtr sensor_msg) const {
       g_sen_r_value=sensor_msg->right;

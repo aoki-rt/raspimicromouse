@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(speedcontrol)
+project(search)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -12,26 +12,21 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(raspimouse_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(raspimicromouse_msgs REQUIRED)
 
-
-add_executable(spdctl_node src/speed_control.cpp)
+add_executable(search_node src/search.cpp)
 ament_target_dependencies(
- spdctl_node
+ search_node
  rclcpp
- geometry_msgs
- raspimouse_msgs
  raspimicromouse_msgs
- nav_msgs
+ std_msgs
+ std_srvs
 )
 
 install(TARGETS
-  spdctl_node
+  search_node
   DESTINATION lib/${PROJECT_NAME})
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

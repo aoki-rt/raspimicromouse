@@ -2,7 +2,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "raspimouse_msgs/msg/light_sensors.hpp"
-#include "raspimouseclassic_msgs/msg/run.hpp" 
+#include "raspimicromouse_msgs/msg/run.hpp" 
 #include <chrono>
 #include <string>
 #include <memory>
@@ -32,7 +32,7 @@ class SpdctlNode : public rclcpp::Node{
   public:
     SpdctlNode() : Node("spdctl_node"){
       publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel",10);
-      subscription_ = this->create_subscription<raspimouseclassic_msgs::msg::Run>(
+      subscription_ = this->create_subscription<raspimicromouse_msgs::msg::Run>(
         "run",10,std::bind(&SpdctlNode::run_callback,this,_1));
       subscription_odom = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom",10,std::bind(&SpdctlNode::odom_callback,this,_1));
@@ -156,7 +156,7 @@ class SpdctlNode : public rclcpp::Node{
       publisher_->publish(twist_msg);
     }
 
-    void run_callback(const raspimouseclassic_msgs::msg::Run::SharedPtr run_msg)  {
+    void run_callback(const raspimicromouse_msgs::msg::Run::SharedPtr run_msg)  {
       RCLCPP_INFO(this->get_logger(),"subscribe: %f %d ",run_msg->length,run_msg->mode);
       g_length = run_msg->length;
       switch(run_msg->mode){
@@ -208,7 +208,7 @@ class SpdctlNode : public rclcpp::Node{
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
-    rclcpp::Subscription<raspimouseclassic_msgs::msg::Run>::SharedPtr subscription_;
+    rclcpp::Subscription<raspimicromouse_msgs::msg::Run>::SharedPtr subscription_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_odom;
     rclcpp::Subscription<raspimouse_msgs::msg::LightSensors>::SharedPtr subscription_sensor;
 

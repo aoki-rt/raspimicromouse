@@ -1,19 +1,16 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>speedcontrol</name>
+  <name>sweeper</name>
   <version>0.0.1</version>
   <description>TODO: Package description</description>
-  <maintainer email="aoki@rt-net.jp">maaoki</maintainer>
+  <maintainer email="aoki@rt-net.jp">RT Corporation</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>raspimouse_msgs</depend>
-  <depend>raspimicromouse_msgs</depend>
+  <depend>rclcpp</depend>
+
 
 
   <test_depend>ament_lint_auto</test_depend>

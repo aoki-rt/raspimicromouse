@@ -3,6 +3,11 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "raspimouse_msgs/msg/light_sensors.hpp"
 #include "raspimicromouse_msgs/msg/run.hpp" 
+#include "raspimicromouse_msgs/msg/len.hpp"
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "tf2/convert.h"
+#include "tf2/utils.h"
+
 #include <chrono>
 #include <string>
 #include <memory>
@@ -10,6 +15,7 @@
 
 
 geometry_msgs::msg::Twist twist_msg;
+raspimicromouse_msgs::msg::Len run_result_msg;
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
@@ -32,6 +38,7 @@ class SpdctlNode : public rclcpp::Node{
   public:
     SpdctlNode() : Node("spdctl_node"){
       publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel",10);
+      publisher_len = this->create_publisher<raspimicromouse_msgs::msg::Len>("run_result",10);
       subscription_ = this->create_subscription<raspimicromouse_msgs::msg::Run>(
         "run",10,std::bind(&SpdctlNode::run_callback,this,_1));
       subscription_odom = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -42,7 +49,9 @@ class SpdctlNode : public rclcpp::Node{
       g_motor_move=0;
     }
   private:
+    
     float g_length,g_lengthed;
+    char run_result;
     float g_theta;
     t_direction g_direction_mode;
     float g_accel;   
@@ -63,7 +72,9 @@ class SpdctlNode : public rclcpp::Node{
       if(g_motor_move==0){
         twist_msg.linear.x=0.0;
         twist_msg.angular.z=0.0;
+        run_result_msg.finish=1;
       }else{
+        run_result_msg.finish=0;
         g_speed+=g_accel/100.0;
         if(g_speed > MAX_SPEED){
           g_speed = MAX_SPEED;
@@ -123,6 +134,7 @@ class SpdctlNode : public rclcpp::Node{
                   g_motor_move=0;
                   g_accel=0.0;
                   g_speed=0.0;
+//                  RCLCPP_INFO(this->get_logger(),"interrupt: %f %f",g_lengthed,g_length);
                 }
                 break;
             }
@@ -153,7 +165,9 @@ class SpdctlNode : public rclcpp::Node{
             omega=0.0;
         }
       }
+      run_result_msg.length=g_lengthed;
       publisher_->publish(twist_msg);
+      publisher_len->publish(run_result_msg);
     }
 
     void run_callback(const raspimicromouse_msgs::msg::Run::SharedPtr run_msg)  {
@@ -171,34 +185,43 @@ class SpdctlNode : public rclcpp::Node{
           break;
       }
       g_lengthed=0.0;
+      g_theta=0.0;
       g_run_state=accel_state;
       g_motor_move=1;
       g_accel = ACCEL;
     }
  
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg)  {
-
 //    RCLCPP_INFO(this->get_logger(),"subscribe_odom: %f %f",odom_msg->pose.pose.position.x,odom_msg->pose.pose.position.y);
+      double r,p,y;
       old_x = new_x;
       old_y = new_y;
       old_theta = new_theta;
       new_x = odom_msg->pose.pose.position.x;
       new_y = odom_msg->pose.pose.position.y;
-      float orient_z = odom_msg->pose.pose.orientation.z;
-      float orient_w = odom_msg->pose.pose.orientation.w;
-      switch(g_direction_mode){
-        case front:
-          g_lengthed = g_lengthed + sqrt( (new_x-old_x)*(new_x-old_x)+(new_y-old_y)*(new_y-old_y) );
-          break;
-        case right:
-        case left:
-          new_theta = atan2(2*orient_w*orient_z, 1-2*orient_z*orient_z);
-          g_theta = g_theta + (new_theta - old_theta);
-          g_lengthed = TREAD*g_theta;
-          break;
-        default:
-          break;
+      double orient_x = odom_msg->pose.pose.orientation.x;
+      double orient_y = odom_msg->pose.pose.orientation.y;
+      double orient_z = odom_msg->pose.pose.orientation.z;
+      double orient_w = odom_msg->pose.pose.orientation.w;
+
+      tf2::Quaternion quat(odom_msg->pose.pose.orientation.x,odom_msg->pose.pose.orientation.y,odom_msg->pose.pose.orientation.z,odom_msg->pose.pose.orientation.w);
+      if(g_motor_move){
+        switch(g_direction_mode){
+          case front:
+            g_lengthed = g_lengthed + sqrt( (new_x-old_x)*(new_x-old_x)+(new_y-old_y)*(new_y-old_y) );
+            break;
+          case right:
+          case left:
+            new_theta = atan2(2*orient_w*orient_z, 1-2*orient_z*orient_z);
+            g_theta = g_theta + (new_theta - old_theta);
+            g_lengthed = abs(TREAD*g_theta);
+            tf2::getEulerYPR(quat,y,p,r); 
+            break;
+          default:
+            break;
+        }
       }
+      RCLCPP_INFO(this->get_logger(),"odo_callback: %f %f %f %f %f %f %f %f %f %f",g_theta,g_lengthed,new_theta,odom_msg->pose.pose.orientation.x,odom_msg->pose.pose.orientation.y,orient_z,orient_w,r,p,y);
     }
 
     void sensor_callback(const raspimouse_msgs::msg::LightSensors::SharedPtr sensor_msg) {
@@ -208,6 +231,7 @@ class SpdctlNode : public rclcpp::Node{
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+    rclcpp::Publisher<raspimicromouse_msgs::msg::Len>::SharedPtr publisher_len;
     rclcpp::Subscription<raspimicromouse_msgs::msg::Run>::SharedPtr subscription_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_odom;
     rclcpp::Subscription<raspimouse_msgs::msg::LightSensors>::SharedPtr subscription_sensor;

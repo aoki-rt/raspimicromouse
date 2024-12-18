@@ -5,6 +5,10 @@
 #include <chrono>
 #include "dynamixel_sdk/dynamixel_sdk.h"
 
+#include <iostream>
+#include <boost/asio.hpp>
+
+
 #define ADDR_TORQUE_ENABLE 64
 #define ADDR_LED 65
 #define ADDR_GOAL_POSITION 116
@@ -19,7 +23,10 @@ dynamixel::PacketHandler * packetHandler;
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
-
+using namespace boost::asio;
+using std::string;
+using std::cout;
+using std::endl;
 
 int dxl_comm_result = COMM_TX_FAIL;
 uint8_t dxl_error = 0;
@@ -37,14 +44,32 @@ class SweeperNode : public rclcpp::Node{
 
   void angle_callback(const std_msgs::msg::Int16::SharedPtr angle_msg){
     RCLCPP_INFO(this->get_logger(),"target_angle %d",angle_msg->data);
+    dxl_comm_result = packetHandler->write4ByteTxRx(
+      portHandler,
+      BROADCAST_ID,
+      ADDR_GOAL_POSITION,
+      angle_msg->data,
+      &dxl_error
+    );
   }
   
   void shot_callback(const std_msgs::msg::Int8::SharedPtr shot_msg){
     RCLCPP_INFO(this->get_logger(),"shot %d",shot_msg->data);
   }
 
-  private:
+/*timer intturpt
+string msg ="Hello , Serail!";
+write(serial,buffer(msg));
 
+char reply[100];
+read(serial.buffer(reply,100));
+cout << "Receiced: " << reply << endl;
+
+*/
+
+
+
+  private:
   rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr publisher_angle;
   rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr subscription_angle;
   rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr subscription_shot;
@@ -54,6 +79,8 @@ int main(int argc, char **argv){
 
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICE_NAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
+
+  io_service io;
 
   // Open Serial Port
   dxl_comm_result = portHandler->openPort();
@@ -68,6 +95,10 @@ int main(int argc, char **argv){
     RCLCPP_ERROR(rclcpp::get_logger("sweeper_node"), "Failed to set the baudrate!");
     return -1;
   }
+
+  serial_port serial(io,"/dev/ttyACM0");
+//  serial.set_option(serial_port_base::baud_rate(115200));
+
 
   // Enable Torque of DYNAMIXEL
   dxl_comm_result = packetHandler->write1ByteTxRx(

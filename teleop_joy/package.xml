@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>teleop_joy</name>
+  <name>rs_teleop_joy</name>
   <version>0.0.1</version>
   <description>Robo Sweep joystick control packag</description>
   <maintainer email="shop@rt-net.jp">RT Corporation</maintainer>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(teleop_joy)
+project(rs_teleop_joy)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -18,17 +18,17 @@ find_package(sensor_msgs REQUIRED)
 include_directories(include)
 
 add_executable(
-  teleop_joy_node 
-  src/joystick_control.cpp)
+  rs_teleop_joy_node 
+  src/rs_joystick_control.cpp)
 
 ament_target_dependencies(
-  teleop_joy_node
+  rs_teleop_joy_node
   rclcpp
   geometry_msgs
   sensor_msgs
 )
 install(TARGETS
-  teleop_joy_node
+  rs_teleop_joy_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -11,6 +11,8 @@
   <depend>dynamixel_sdk</depend>
   <depend>rclcpp</depend>
 
+  <depend>raspimouse_msgs</depend>
+  <depend>std_srvs</depend>
 
 
   <test_depend>ament_lint_auto</test_depend>

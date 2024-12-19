@@ -12,7 +12,10 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(dynamixel_sdk REQUIRED)
+find_package(raspimouse_msgs REQUIRED)
+
 
 include_directories(include)
 
@@ -27,6 +30,8 @@ ament_target_dependencies(
   dynamixel_sdk
   rclcpp
   std_msgs
+  std_srvs
+  raspimouse_msgs
 )
 
 # install

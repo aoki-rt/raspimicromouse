@@ -1,10 +1,23 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int8.hpp"
 #include "std_msgs/msg/int16.hpp"
 #include <string>
 #include <chrono>
 #include "dynamixel_sdk/dynamixel_sdk.h"
-
+#include "raspimouse_msgs/msg/switches.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 #include <iostream>
 #include <boost/asio.hpp>
 
@@ -42,6 +55,9 @@ class SweeperNode : public rclcpp::Node{
         "shot",10,std::bind(&SweeperNode::shot_callback,this,_1));
       subscription_strength = this->create_subscription<std_msgs::msg::Int8>(
         "shot_strength",10,std::bind(&SweeperNode::strength_callback,this,_1));
+      subscription_sw = this->create_subscription<raspimouse_msgs::msg::Switches>(
+        "switches",10,std::bind(&SweeperNode::switch_callback,this,_1));
+      client_ = this->create_client<std_srvs::srv::SetBool>("motor_power");
       timer_ = this->create_wall_timer(10ms,std::bind(&SweeperNode::timer_callback,this));
       _port.open(portname);
     }
@@ -83,6 +99,22 @@ class SweeperNode : public rclcpp::Node{
   }
 
 
+  void switch_callback(const raspimouse_msgs::msg::Switches::SharedPtr sw_msg){
+   auto request = std::make_shared<std_srvs::srv::SetBool::Request>();  
+
+   if(sw_msg->switch1){
+      request->data=true;
+      client_->async_send_request(request,std::bind(&SweeperNode::callback_response_,this,_1));
+    }
+    if(sw_msg->switch2){
+      request->data=false;
+      client_->async_send_request(request,std::bind(&SweeperNode::callback_response_,this,_1));
+    }
+  }
+
+  void callback_response_(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future){
+  }
+
   void timer_callback(){//100Hz interupt
     char reply[100];
 
@@ -104,6 +136,8 @@ class SweeperNode : public rclcpp::Node{
   rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr subscription_angle;
   rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr subscription_shot;
   rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr subscription_strength;
+  rclcpp::Subscription<raspimouse_msgs::msg::Switches>::SharedPtr subscription_sw;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr client_;
 };
 
 int main(int argc, char **argv){

@@ -41,8 +41,21 @@ class JoypadNode : public rclcpp::Node{
 
 
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr data){
-      linear_x = 0.150 * data->axes[7];
-      angular_z = 3 * data->axes[6];
+      if(data->axes[7] !=0) {
+        linear_x = 0.150 * data->axes[7]/2;
+      }else if ((data->axes[1] > 0.000001) || (data->axes[1] < -0.000001)) {
+        linear_x = data->axes[1] * 0.500;
+      } else {
+        linear_x = 0;
+      }
+      if (data->axes[6] != 0) {
+        angular_z = 3 * data->axes[6]/2;
+      } else if ((data->axes[3] > 0.00001) || (data->axes[3] < -0.00001)) {
+        angular_z = data->axes[3] * 5;
+      } else {
+        angular_z = 0;
+      }
+      
       twist_msg.linear.x = linear_x;
       twist_msg.angular.z = angular_z;
       publisher_twist->publish(twist_msg);
@@ -62,7 +75,7 @@ class JoypadNode : public rclcpp::Node{
         publisher_angle->publish(angle_data);
       }
 
-      strength_data.data=(int)(((data->axes[2]*-1)+1)*100);
+      strength_data.data=(int)(((data->axes[2]*-1)+1)*50);
       publisher_strength->publish(strength_data); 
 
       if(data->buttons[1]==1){//shot

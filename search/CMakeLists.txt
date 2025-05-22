@@ -14,11 +14,14 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(raspimicromouse_msgs REQUIRED)
+find_package(raspimouse_msgs REQUIRED)
+find_package(raspimouse_msgs REQUIRED)
 
 add_executable(search_node src/search.cpp)
 ament_target_dependencies(
  search_node
  rclcpp
+ raspimouse_msgs
  raspimicromouse_msgs
  std_msgs
  std_srvs
